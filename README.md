@@ -19,7 +19,7 @@ die öffentlichen Quellen:
 
 ```bash
 cd ~/ros2_ws
-vcs import src < src/robotnik_rbvogui_tum/dependencies/robotnik_rbvogui_tum.repos
+vcs import src < src/robotnik/robotnik_rbvogui_tum/dependencies/robotnik_rbvogui_tum.repos
 rosdep install --from-paths src --ignore-src -r -y
 colcon build --symlink-install --packages-up-to robotnik_rbvogui_tum
 source install/setup.bash
