@@ -130,6 +130,46 @@
     <origin xyz="0 0 0" rpy="0 0 0" />
   </xacro:arm_ur>
 
+  <!-- Assumed spraying nozzle: 250 mm from the UR flange along flange -X.
+       The nozzle-tip frame has its local +Z axis aligned with flange -X. -->
+  <xacro:property name="nozzle_length" value="0.25" />
+  <xacro:property name="nozzle_radius" value="0.015" />
+
+  <link name="$(arg prefix)arm_nozzle_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${nozzle_radius}" length="${nozzle_length}" />
+      </geometry>
+      <material name="nozzle_material">
+        <color rgba="0.25 0.25 0.25 1" />
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${nozzle_radius}" length="${nozzle_length}" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.00001" />
+    </inertial>
+  </link>
+
+  <joint name="$(arg prefix)arm_flange_to_nozzle" type="fixed">
+    <parent link="$(arg prefix)arm_flange" />
+    <child link="$(arg prefix)arm_nozzle_link" />
+    <!-- Cylinder centre: 125 mm along flange -X. Ry(-90 deg) maps local +Z to flange -X. -->
+    <origin xyz="-${nozzle_length / 2.0} 0 0" rpy="0 -${pi / 2.0} 0" />
+  </joint>
+
+  <link name="$(arg prefix)arm_nozzle_tip" />
+  <joint name="$(arg prefix)arm_nozzle_tip_joint" type="fixed">
+    <parent link="$(arg prefix)arm_nozzle_link" />
+    <child link="$(arg prefix)arm_nozzle_tip" />
+    <origin xyz="0 0 ${nozzle_length / 2.0}" rpy="0 0 0" />
+  </joint>
+
   <xacro:if value="$(arg gazebo_ignition)">
     <gazebo>
       <plugin
