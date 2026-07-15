@@ -1,0 +1,72 @@
+/**:
+  controller_manager:
+    ros__parameters:
+      update_rate: 50
+
+      joint_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+
+      steering_position_controller:
+        type: position_controllers/JointGroupPositionController
+
+      wheel_velocity_controller:
+        type: velocity_controllers/JointGroupVelocityController
+
+      lift_position_controller:
+        type: position_controllers/JointGroupPositionController
+
+      joint_trajectory_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+      arm_forward_velocity_controller:
+        type: velocity_controllers/JointGroupVelocityController
+
+  steering_position_controller:
+    ros__parameters:
+      joints:
+        - robot_front_left_steering_joint
+        - robot_front_right_steering_joint
+        - robot_back_left_steering_joint
+        - robot_back_right_steering_joint
+
+  wheel_velocity_controller:
+    ros__parameters:
+      joints:
+        - robot_front_left_wheel_joint
+        - robot_front_right_wheel_joint
+        - robot_back_left_wheel_joint
+        - robot_back_right_wheel_joint
+
+  lift_position_controller:
+    ros__parameters:
+      joints:
+        - robot_lift_joint
+
+  joint_trajectory_controller:
+    ros__parameters:
+      joints:
+        - robot_arm_shoulder_pan_joint
+        - robot_arm_shoulder_lift_joint
+        - robot_arm_elbow_joint
+        - robot_arm_wrist_1_joint
+        - robot_arm_wrist_2_joint
+        - robot_arm_wrist_3_joint
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity
+      state_publish_rate: 50.0
+      action_monitor_rate: 20.0
+      allow_partial_joints_goal: false
+      open_loop_control: true
+
+  arm_forward_velocity_controller:
+    ros__parameters:
+      joints:
+        - robot_arm_shoulder_pan_joint
+        - robot_arm_shoulder_lift_joint
+        - robot_arm_elbow_joint
+        - robot_arm_wrist_1_joint
+        - robot_arm_wrist_2_joint
+        - robot_arm_wrist_3_joint

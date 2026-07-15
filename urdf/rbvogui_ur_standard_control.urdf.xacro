@@ -1,0 +1,202 @@
+<?xml version="1.0" ?>
+<robot name="rbvogui_ur_standard_control" xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:include
+    filename="$(find robotnik_description)/urdf/inertia.urdf.xacro" />
+  <xacro:include
+    filename="$(find robotnik_description)/urdf/bodies/rbvogui_xl/rbvogui_xl_body.urdf.xacro" />
+  <xacro:include
+    filename="$(find robotnik_rbvogui_tum)/urdf/wheels/steering_wheel/steering_wheel_285.urdf.xacro" />
+  <xacro:include
+    filename="$(find robotnik_description)/urdf/arms/ur_macro.urdf.xacro" />
+
+  <xacro:arg name="namespace" default="robot" />
+  <xacro:arg name="prefix" default="robot_" />
+  <xacro:arg name="gazebo_ignition" default="true" />
+  <xacro:arg name="ur_type" default="ur20" />
+
+  <xacro:property name="wheel_offset_x" value="0.4795" />
+  <xacro:property name="wheel_offset_y" value="0.2925" />
+  <xacro:property name="chassis_top_plate_z" value="0.2879" />
+  <xacro:property name="lift_base_mount_z" value="0.01" />
+  <xacro:property name="lift_retracted_height_above_top_plate" value="0.35" />
+  <xacro:property
+    name="lift_retracted_origin_z"
+    value="${chassis_top_plate_z - lift_base_mount_z + lift_retracted_height_above_top_plate}" />
+
+  <xacro:rbvogui_xl_body prefix="$(arg prefix)" hq="true" />
+
+  <xacro:steering_xl_wheel_285
+    prefix="$(arg prefix)front_right_"
+    parent="$(arg prefix)base_link"
+    reflect="false"
+    hq="true">
+    <origin xyz="${wheel_offset_x} -${wheel_offset_y} 0" rpy="0 0 0" />
+  </xacro:steering_xl_wheel_285>
+  <xacro:steering_xl_wheel_285
+    prefix="$(arg prefix)front_left_"
+    parent="$(arg prefix)base_link"
+    reflect="true"
+    hq="true">
+    <origin xyz="${wheel_offset_x} ${wheel_offset_y} 0" rpy="0 0 0" />
+  </xacro:steering_xl_wheel_285>
+  <xacro:steering_xl_wheel_285
+    prefix="$(arg prefix)back_left_"
+    parent="$(arg prefix)base_link"
+    reflect="true"
+    hq="true">
+    <origin xyz="-${wheel_offset_x} ${wheel_offset_y} 0" rpy="0 0 0" />
+  </xacro:steering_xl_wheel_285>
+  <xacro:steering_xl_wheel_285
+    prefix="$(arg prefix)back_right_"
+    parent="$(arg prefix)base_link"
+    reflect="false"
+    hq="true">
+    <origin xyz="-${wheel_offset_x} -${wheel_offset_y} 0" rpy="0 0 0" />
+  </xacro:steering_xl_wheel_285>
+
+  <link name="$(arg prefix)lift_base_link">
+    <visual>
+      <geometry>
+        <mesh
+          filename="package://robotnik_description/meshes/structures/ewellix/ewellix_lift_base_900mm.stl"
+          scale="0.95 0.95 1" />
+      </geometry>
+      <material name="grey">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.005 0 0.00235" rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://robotnik_description/meshes/structures/ewellix/ewellix_lift_base_900mm.stl"
+          scale="0.95 0.95 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="20" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <inertia ixx="1e-1" ixy="0" ixz="0" iyy="1e-1" iyz="0" izz="1e-1" />
+    </inertial>
+  </link>
+  <joint name="$(arg prefix)lift_base_joint" type="fixed">
+    <origin xyz="0.26 0 ${lift_base_mount_z}" rpy="0 0 0" />
+    <parent link="$(arg prefix)chassis_link" />
+    <child link="$(arg prefix)lift_base_link" />
+  </joint>
+
+  <link name="$(arg prefix)lift_link">
+    <visual>
+      <geometry>
+        <mesh filename="package://robotnik_description/meshes/structures/ewellix/ewellix_lift_top_900mm.stl" />
+      </geometry>
+      <material name="grey">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.005 0 0.00235" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robotnik_description/meshes/structures/ewellix/ewellix_lift_top_900mm.stl" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.02" />
+    </inertial>
+  </link>
+  <joint name="$(arg prefix)lift_joint" type="prismatic">
+    <origin xyz="0 0 ${lift_retracted_origin_z}" rpy="0 0 0" />
+    <parent link="$(arg prefix)lift_base_link" />
+    <child link="$(arg prefix)lift_link" />
+    <limit effort="1000" lower="0.0" upper="0.9" velocity="0.088" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.0" friction="0.0" />
+  </joint>
+
+  <gazebo reference="$(arg prefix)lift_base_link">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+  <gazebo reference="$(arg prefix)lift_link">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <xacro:arm_ur
+    ur_type="$(arg ur_type)"
+    frame_prefix="$(arg prefix)arm_"
+    parent="$(arg prefix)lift_link"
+    gazebo_ignition="$(arg gazebo_ignition)">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </xacro:arm_ur>
+
+  <xacro:if value="$(arg gazebo_ignition)">
+    <gazebo>
+      <plugin
+        name="gz::sim::systems::PosePublisher"
+        filename="libgz-sim-pose-publisher-system.so">
+        <publish_model_pose>true</publish_model_pose>
+        <publish_nested_model_pose>true</publish_nested_model_pose>
+      </plugin>
+      <plugin
+        name="gz_ros2_control::GazeboSimROS2ControlPlugin"
+        filename="gz_ros2_control-system">
+        <robot_param>robot_description</robot_param>
+        <robot_param_node>robot_state_publisher</robot_param_node>
+        <parameters>$(find robotnik_rbvogui_tum)/config/rbvogui_standard_controllers.yaml</parameters>
+        <ros>
+          <namespace>/$(arg namespace)</namespace>
+        </ros>
+      </plugin>
+    </gazebo>
+
+    <xacro:macro
+      name="controlled_joint"
+      params="name command_interface lower_limit upper_limit">
+      <joint name="${name}">
+        <command_interface name="${command_interface}">
+          <param name="min">${lower_limit}</param>
+          <param name="max">${upper_limit}</param>
+        </command_interface>
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+    </xacro:macro>
+
+    <ros2_control name="GazeboSystem" type="system">
+      <hardware>
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      </hardware>
+
+      <xacro:controlled_joint
+        name="$(arg prefix)front_left_steering_joint"
+        command_interface="position" lower_limit="-3.0" upper_limit="3.0" />
+      <xacro:controlled_joint
+        name="$(arg prefix)front_right_steering_joint"
+        command_interface="position" lower_limit="-3.0" upper_limit="3.0" />
+      <xacro:controlled_joint
+        name="$(arg prefix)back_left_steering_joint"
+        command_interface="position" lower_limit="-3.0" upper_limit="3.0" />
+      <xacro:controlled_joint
+        name="$(arg prefix)back_right_steering_joint"
+        command_interface="position" lower_limit="-3.0" upper_limit="3.0" />
+
+      <xacro:controlled_joint
+        name="$(arg prefix)front_left_wheel_joint"
+        command_interface="velocity" lower_limit="-10.0" upper_limit="10.0" />
+      <xacro:controlled_joint
+        name="$(arg prefix)front_right_wheel_joint"
+        command_interface="velocity" lower_limit="-10.0" upper_limit="10.0" />
+      <xacro:controlled_joint
+        name="$(arg prefix)back_left_wheel_joint"
+        command_interface="velocity" lower_limit="-10.0" upper_limit="10.0" />
+      <xacro:controlled_joint
+        name="$(arg prefix)back_right_wheel_joint"
+        command_interface="velocity" lower_limit="-10.0" upper_limit="10.0" />
+      <xacro:controlled_joint
+        name="$(arg prefix)lift_joint"
+        command_interface="position" lower_limit="0.0" upper_limit="0.9" />
+    </ros2_control>
+  </xacro:if>
+</robot>
