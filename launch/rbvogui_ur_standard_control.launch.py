@@ -1,5 +1,11 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    IncludeLaunchDescription,
+    TimerAction,
+    UnsetEnvironmentVariable,
+)
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
@@ -20,6 +26,21 @@ def generate_launch_description() -> LaunchDescription:
         'worlds',
         [LaunchConfiguration('world'), '.world'],
     ])
+    gui_enabled = PythonExpression([
+        "'", LaunchConfiguration('gui'),
+        "'.strip().lower() in ('true','1','yes','on')",
+    ])
+    # A GUI launched from the Snap build of VS Code inherits GTK/Qt paths
+    # pointing into /snap. Gazebo then mixes its host libc with Snap's
+    # libpthread and aborts before the simulation can be measured. These
+    # variables affect GUI discovery only, so remove them solely for gui:=true.
+    gui_environment_cleanup = [
+        UnsetEnvironmentVariable(name, condition=IfCondition(gui_enabled))
+        for name in (
+            'GTK_EXE_PREFIX', 'GTK_IM_MODULE_FILE', 'GTK_MODULES', 'GTK_PATH',
+            'QT_ACCESSIBILITY', 'QT_IM_MODULE', 'XDG_DATA_HOME', 'XDG_DATA_DIRS',
+        )
+    ]
 
     world_with_gui = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([
@@ -31,10 +52,7 @@ def generate_launch_description() -> LaunchDescription:
             'gz_args': ['-r ', world_path],
             'on_exit_shutdown': 'true',
         }.items(),
-        condition=IfCondition(PythonExpression([
-            "'", LaunchConfiguration('gui'),
-            "'.strip().lower() in ('true','1','yes','on')"
-        ])),
+        condition=IfCondition(gui_enabled),
     )
 
     world_headless = IncludeLaunchDescription(
@@ -47,10 +65,7 @@ def generate_launch_description() -> LaunchDescription:
             'gz_args': ['-r -s ', world_path],
             'on_exit_shutdown': 'true',
         }.items(),
-        condition=UnlessCondition(PythonExpression([
-            "'", LaunchConfiguration('gui'),
-            "'.strip().lower() in ('true','1','yes','on')"
-        ])),
+        condition=UnlessCondition(gui_enabled),
     )
 
     clock_bridge = Node(
@@ -136,7 +151,7 @@ def generate_launch_description() -> LaunchDescription:
         parameters=[{
             'use_sim_time': use_sim_time,
             'target_frame': 'map',
-            'source_frame': [robot_id, '_arm_tool0'],
+            'source_frame': [robot_id, '_arm_nozzle_tip'],
             'pose_topic': '/current_tcp_pose',
             'publish_rate': 20.0,
         }],
@@ -219,6 +234,7 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('x', default_value='0.0'),
         DeclareLaunchArgument('y', default_value='0.0'),
         DeclareLaunchArgument('z', default_value='0.1'),
+        *gui_environment_cleanup,
         world_with_gui,
         world_headless,
         clock_bridge,

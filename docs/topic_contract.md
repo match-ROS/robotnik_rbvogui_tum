@@ -18,7 +18,7 @@ TCP/nozzle pose:
 
 - Topic: `/current_tcp_pose`
 - Type: `geometry_msgs/msg/PoseStamped`
-- Source: ROS TF lookup from `map` to `robot_arm_tool0`
+- Source: ROS TF lookup from `map` to `robot_arm_nozzle_tip`
 - Frame ID: `map`
 
 ## Documented Outputs

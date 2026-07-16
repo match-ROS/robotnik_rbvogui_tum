@@ -7,12 +7,26 @@
   <xacro:include
     filename="$(find robotnik_rbvogui_tum)/urdf/wheels/steering_wheel/steering_wheel_285.urdf.xacro" />
   <xacro:include
-    filename="$(find robotnik_description)/urdf/arms/ur_macro.urdf.xacro" />
+    filename="$(find ur_description)/urdf/ur_macro.xacro" />
 
   <xacro:arg name="namespace" default="robot" />
   <xacro:arg name="prefix" default="robot_" />
   <xacro:arg name="gazebo_ignition" default="true" />
   <xacro:arg name="ur_type" default="ur20" />
+  <!-- Requested pose: 180°, 90°, -90°, -90°, -90°, 0°; flange down. -->
+  <xacro:arg name="ur_initial_shoulder_pan_joint" default="3.141592653589793" />
+  <xacro:arg name="ur_initial_shoulder_lift_joint" default="3.141592653589793" />
+  <xacro:arg name="ur_initial_elbow_joint" default="-1.570796326794897" />
+  <xacro:arg name="ur_initial_wrist_1_joint" default="0.0" />
+  <xacro:arg name="ur_initial_wrist_2_joint" default="1.570796326794897" />
+  <xacro:arg name="ur_initial_wrist_3_joint" default="1.570796326794897" />
+  <xacro:property name="ur_initial_positions" value="${dict(
+    shoulder_pan_joint=float('$(arg ur_initial_shoulder_pan_joint)'),
+    shoulder_lift_joint=float('$(arg ur_initial_shoulder_lift_joint)'),
+    elbow_joint=float('$(arg ur_initial_elbow_joint)'),
+    wrist_1_joint=float('$(arg ur_initial_wrist_1_joint)'),
+    wrist_2_joint=float('$(arg ur_initial_wrist_2_joint)'),
+    wrist_3_joint=float('$(arg ur_initial_wrist_3_joint)'))}" />
 
   <xacro:property name="wheel_offset_x" value="0.4795" />
   <xacro:property name="wheel_offset_y" value="0.2925" />
@@ -122,16 +136,40 @@
     <material>Gazebo/Grey</material>
   </gazebo>
 
-  <xacro:arm_ur
-    ur_type="$(arg ur_type)"
-    frame_prefix="$(arg prefix)arm_"
-    parent="$(arg prefix)lift_link"
-    gazebo_ignition="$(arg gazebo_ignition)">
-    <origin xyz="0 0 0" rpy="0 0 0" />
-  </xacro:arm_ur>
+  <xacro:property
+    name="ur_joint_limit_params"
+    value="$(find ur_description)/config/$(arg ur_type)/joint_limits.yaml" />
+  <xacro:property
+    name="ur_kinematics_params"
+    value="$(find ur_description)/config/$(arg ur_type)/default_kinematics.yaml" />
+  <xacro:property
+    name="ur_physical_params"
+    value="$(find ur_description)/config/$(arg ur_type)/physical_parameters.yaml" />
+  <xacro:property
+    name="ur_visual_params"
+    value="$(find ur_description)/config/$(arg ur_type)/visual_parameters.yaml" />
 
-  <!-- Assumed spraying nozzle: 250 mm from the UR flange along flange -X.
-       The nozzle-tip frame has its local +Z axis aligned with flange -X. -->
+  <xacro:ur_robot
+    name="$(arg ur_type)"
+    tf_prefix="$(arg prefix)arm_"
+    parent="$(arg prefix)lift_link"
+    joint_limits_parameters_file="${ur_joint_limit_params}"
+    kinematics_parameters_file="${ur_kinematics_params}"
+    physical_parameters_file="${ur_physical_params}"
+    visual_parameters_file="${ur_visual_params}">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </xacro:ur_robot>
+
+  <xacro:if value="$(arg gazebo_ignition)">
+    <xacro:include filename="$(find ur_simulation_gz)/urdf/ur_gz.ros2_control.xacro" />
+    <xacro:ur_ros2_control
+      name="arm"
+      tf_prefix="$(arg prefix)arm_"
+      initial_positions="${ur_initial_positions}" />
+  </xacro:if>
+
+  <!-- Assumed spraying nozzle: its tip is 250 mm along tool0 -X. The nozzle
+       axis is offset by its radius along tool0 +Z to avoid the flange. -->
   <xacro:property name="nozzle_length" value="0.25" />
   <xacro:property name="nozzle_radius" value="0.015" />
 
@@ -156,11 +194,12 @@
     </inertial>
   </link>
 
-  <joint name="$(arg prefix)arm_flange_to_nozzle" type="fixed">
-    <parent link="$(arg prefix)arm_flange" />
+  <joint name="$(arg prefix)arm_tool0_to_nozzle" type="fixed">
+    <parent link="$(arg prefix)arm_tool0" />
     <child link="$(arg prefix)arm_nozzle_link" />
-    <!-- Cylinder centre: 125 mm along flange -X. Ry(-90 deg) maps local +Z to flange -X. -->
-    <origin xyz="-${nozzle_length / 2.0} 0 0" rpy="0 -${pi / 2.0} 0" />
+    <!-- Cylinder centre: 125 mm along tool0 -X, offset by one radius in tool0 +Z.
+         Ry(-90 deg) maps local +Z to tool0 -X. -->
+    <origin xyz="-${nozzle_length / 2.0} 0 ${nozzle_radius}" rpy="0 -${pi / 2.0} 0" />
   </joint>
 
   <link name="$(arg prefix)arm_nozzle_tip" />
